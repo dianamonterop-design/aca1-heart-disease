@@ -14,8 +14,14 @@ st.set_page_config(page_title="Predicción de enfermedad cardíaca", page_icon="
 
 
 @st.cache_resource
-def get_model():
-    return joblib.load(MODEL_PATH)
+def get_model_and_metrics():
+    """Carga model.joblib; si no existe o es de otra versión de scikit-learn, reentrena."""
+    try:
+        return joblib.load(MODEL_PATH), json.loads(METRICS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        import train
+
+        return train.main()
 
 
 @st.cache_data
@@ -23,16 +29,9 @@ def get_data():
     return load_data()
 
 
-@st.cache_data
-def get_metrics():
-    return json.loads(METRICS_PATH.read_text(encoding="utf-8"))
-
-
-if not MODEL_PATH.exists():
-    st.error("No se encontró model.joblib. Ejecuta primero `python train.py`.")
-    st.stop()
-
-model, df, metrics = get_model(), get_data(), get_metrics()
+with st.spinner("Preparando el modelo..."):
+    model, metrics = get_model_and_metrics()
+df = get_data()
 
 st.title("❤️ Detección asistida de enfermedad cardíaca")
 st.caption(
